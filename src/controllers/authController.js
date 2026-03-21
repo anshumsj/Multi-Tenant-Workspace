@@ -1,6 +1,8 @@
 const usermodel = require('../models/usermodel');
+const otpmodel = require('../models/otpmodel');
 const bcrypt = require('bcrypt');
 const JWT = require('jsonwebtoken');
+const { sendOtpEmail } = require('../services/emailServices');
 require('dotenv').config();
 
 const register = async (req,res)=>{
@@ -99,6 +101,109 @@ const logout = async (req,res)=>{
                 })
         }
 }
+
+// this is the change password follow for reference
+// requestOtp ──── creates ────► OtpTokens collection
+//                                       │
+// verifyOtp ──── reads & deletes ───────┘
+//          └─── creates ────► ResetTokens collection
+//                                       │
+// changePassword ── reads & deletes ────┘
+//                └─ updates ───► Users collection
+
+const  generateOtp = async (req,res) => {
+        try{
+                let {email} = req.body;
+                if(!email){
+                        return res.status(400).json({
+                                message:"email is required"
+                        })
+                }
+                email = email.toLowerCase();
+                // verify if this email exists
+                const existinguser = await usermodel.findOne({email:email.toLowerCase()});
+                if(!existinguser){
+                        return res.status(404).json({
+                                message:"no user found with this email"
+                        })
+                }
+                await otpmodel.deleteMany({email:email});
+                // generate a 6 digit otp
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                // save the otp in the database
+                await otpmodel.create({
+                        email:email.toLowerCase(),
+                        otp:otp,
+                        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // otp will expire in 10 minutes
+                })
+                // send the otp to the user's email
+                await sendOtpEmail(email,otp);
+                return res.status(200).json({
+                        message:"otp sent to email successfully"
+                })
+        }catch(error){
+                return res.status(500).json({
+                        message:"error generating otp",
+                        error : error.message
+                })
+        }
+}
+
+const verifyOtp = async (req,res) => {
+        try{
+                let {email,otp} = req.body;
+                email = email.toLowerCase();
+                otp = String(otp).trim();
+                if(!email||!otp){
+                        return res.status(400).json({
+                                message:"email and otp both are required"
+                        })
+                }
+                // verify the otp
+                const otprecord = await otpmodel.findOne({email:email});
+                if(!otprecord){return res.status(400).json({message:"otp not found"})}
+                if(String(otprecord.otp).trim() !== otp){return res.status(400).json({message:"invalid otp"})}
+                if(Date.now() > otprecord.expiresAt){return res.status(400).json({message:"otp expired"})}
+                // if otp is valid then we delete the otp from databse so it cant be used again and we create a resetToken
+                await otpmodel.deleteOne({email:email});
+                const resetToken = JWT.sign({email:email},process.env.JWT_SECRET,{expiresIn:'15m'});// reset token will expire in 15 minutes
+                return res.status(200).json({
+                        message:"otp verified successfully",
+                        resetToken: resetToken
+                })
+        }catch(error){
+                return res.status(500).json({
+                        message:"error verifying otp",
+                        error : error.message
+                })
+        }
+}
+
+const changePassword = async (req,res) => {
+        try{
+                const {newPassword,resetToken} = req.body
+                if(!newPassword || !resetToken){
+                        return res.status(400).json({
+                                message:"new password and reset token both are required"
+                        })
+                }
+                // verify the reset token
+                const decoded = JWT.verify(resetToken,process.env.JWT_SECRET)
+                const email = decoded.email;
+                // find user and update the password 
+                const hash = await bcrypt.hash(newPassword,10);
+                await usermodel.findOneAndUpdate({email:email},{password:hash})
+                return res.status(200).json({
+                        message:"password changed successfully"
+                })
+        }catch(error){
+                return res.status(500).json({
+                        message:"error changing password",
+                        error : error.message
+                })
+        }
+}
+
 module.exports = {
-    register,login,logout
+    register,login,logout,changePassword,generateOtp,verifyOtp
 }

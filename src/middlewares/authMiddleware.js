@@ -3,7 +3,6 @@ const tokenBlacklist = require('../models/tokenBlacklist');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const tokenVerificationMiddleware = async (req,res,next) => {
-  console.log("\n🔐 AUTH MIDDLEWARE CALLED");
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];// either we will get the token from the cookie or from the authorization header
     if(!token){
         return res.status(401).json({

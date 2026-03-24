@@ -9,7 +9,6 @@ const Workspacemodel = require('../models/workspace');
 const WorkspaceMembermodel = require('../models/workspaceMember');
 const usermodel = require('../models/usermodel');
 const mongoose = require('mongoose');
-const WorkspaceMember = require('../models/workspaceMember');
 
 const createWorkspace = async (req,res) => {
     console.log('\n🚀 === CONTROLLER CALLED ===');
@@ -73,15 +72,10 @@ const createWorkspace = async (req,res) => {
 
 const addMemberToWorkspace = async (req,res) => {
     try{
-        const workspaceId = req.params.workspaceId;
+        const workspaceId = req.workspaceId;// we will get this from workspaceVerificationMiddleware which we will create in workspace middleware
         const userId = req.userId;
         const member = req.member;// we will get this from workspaceVerificationMiddleware which we will create in workspace middleware
-        // we will check if the user has permission to add member or not in workspaceVerificationMiddleware and we will pass the role of the user in req.member and we will check that role here if the role is viewer or member then we will return error because only owner and admin can add members to workspace
-        if(member.role === 'viewer' || member.role === 'member'){
-            return res.status(403).json({
-                message:"you are not authorised to add members to this workspace"
-            })
-        }
+        
         const {newUserId,role} = req.body;
         if(!newUserId || !role){
             return res.status(400).json({
@@ -141,8 +135,8 @@ const getAllWorkspaces = async (req,res) => {
                         message:'workspaces fetched successfully',
                         workspaces: workspaces
                 })
-}               catch(error){                
-                        return res.status(500).json({
+        } catch(error){                
+                return res.status(500).json({
                         message:"error fetching workspaces",
                         error: error.message
                 })
@@ -150,10 +144,10 @@ const getAllWorkspaces = async (req,res) => {
 }
 
 const getAllMemberOfWorkspace = async (req,res) => {
-        const workspaceId = req.params.workspaceId;
+        const workspaceId = req.workspaceId;// we will get this from workspaceVerificationMiddleware which we will create in workspace middleware
         try{
-                const members = await WorkspaceMembermodel.findOne({workspaceId:workspaceId}).populate('userId','name email').select('role userId');
-                if(!members.length === 0){
+                const members = await WorkspaceMembermodel.find({workspaceId:workspaceId}).populate('userId','name email').select('role userId');
+                if(members.length === 0){
                     return res.status(404).json({
                             message:'no members found in this workspace'
                     })

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import API from '../api/axios'
 const Register = () => {
   const [registerForm, setregisterForm] = useState({
@@ -10,12 +11,14 @@ const Register = () => {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPassword, setshowPassword] = useState(false)
+  const navigate = useNavigate();
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try{
       setError("");
       setLoading(true);
       const res = await API.post('/auth/register', registerForm);
+      navigate('/');
       console.log(res.data);
       setLoading(false);
     } catch (error) {

@@ -1,6 +1,6 @@
 import React from 'react'
 import {Routes,Route} from 'react-router-dom'
-import Dashboard from './pages/dashboard'
+import Dashboard from './pages/Dashboard'
 import Project from './pages/Project'
 import Task from './pages/Task'
 import Workspace from './pages/Workspace'

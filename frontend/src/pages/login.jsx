@@ -1,11 +1,17 @@
 import React from 'react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import API from '../api/axios'
+import ChangePassword from '../components/changePassword'
+import { useAuth } from '../context/authContext'
 const Login = () => {
+  const { login } = useAuth();
+
   const [loginForm, setloginForm] = useState({
       email:"",
       password:""
   })
+  const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setshowPassword] = useState(false);
@@ -16,7 +22,9 @@ const Login = () => {
           setLoading(true);
           // login logic
           const res = await API.post('/auth/login',loginForm);
-          console.log(res.data);
+          login(res.data.user);
+          navigate('/');
+          console.log(res.data.user);
           setLoading(false);
       }catch(error){
           setLoading(false);
@@ -66,6 +74,7 @@ const Login = () => {
             {loading ? 'Signing in...' : 'Login'}
           </button>
         </form>
+        <div><ChangePassword /></div>
       </div>
     </section>
   )

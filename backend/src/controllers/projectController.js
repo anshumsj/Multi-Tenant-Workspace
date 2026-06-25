@@ -27,6 +27,12 @@ const createProject = async (req,res) => {
             projectId:newProject._id,
             userId:projectLead || userId
         })
+        if (projectLead && projectLead !== userId) {
+            await projectMemberModel.create({
+                projectId: newProject._id,
+                userId: userId
+            })
+        }
         res.status(201).json({
             success:true,
             message:"Project created successfully",
@@ -155,7 +161,7 @@ const deleteProject = async (req,res) => {
                         message:"Project not found in the workspace."
                     })  
                 }
-                await project.remove();
+                await projectModel.findByIdAndDelete(projectId);
                 res.status(200).json({
                     success:true,
                     message:"Project deleted successfully"
@@ -232,11 +238,22 @@ const addMemberToProject = async (req,res) => {
 }
 
 
+const getProjectMembers = async (req, res) => {
+    try {
+        const { workspaceId, projectId } = req.params;
+        const members = await projectMemberModel.find({ projectId }).populate('userId', 'name email');
+        res.status(200).json({ success: true, members });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching project members", error: error.message });
+    }
+}
+
 module.exports = {
     createProject,
     changeProjectLead,
     getAllProjects,
     updateProject,
     deleteProject,
-    addMemberToProject
+    addMemberToProject,
+    getProjectMembers
 }

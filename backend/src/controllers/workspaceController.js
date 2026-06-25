@@ -110,9 +110,12 @@ const addMemberToWorkspace = async (req,res) => {
             role:role
         })
         
+        // Populate userId with user data before returning
+        const populatedMember = await newMember.populate('userId', 'name email');
+        
         return res.status(201).json({
             message:"member added successfully to workspace",
-            member: newMember
+            member: populatedMember
         })
     }catch(error){
         return res.status(500).json({
@@ -124,13 +127,15 @@ const addMemberToWorkspace = async (req,res) => {
 
 const getAllWorkspaces = async (req,res) => {
         try{
-                userId = req.userId;
-                const workspaces = await WorkspaceMembermodel.find({userId:userId}).populate('workspaceId','name description');
-                if(workspaces.length === 0){
+                const userId = req.userId;
+                const workspaceMembers = await WorkspaceMembermodel.find({userId:userId}).populate('workspaceId');
+                if(workspaceMembers.length === 0){
                     return res.status(404).json({
                             message:'you are not a member of any workspace'
                     })
                 }
+                // Extract and return just the workspace objects
+                const workspaces = workspaceMembers.map(member => member.workspaceId);
                 return res.status(200).json({
                         message:'workspaces fetched successfully',
                         workspaces: workspaces
@@ -164,10 +169,40 @@ const getAllMemberOfWorkspace = async (req,res) => {
         }
 }
 
+const removeMemberFromWorkspace = async (req,res) => {
+        const workspaceId = req.workspaceId;
+        try{
+                const {memberId} = req.body;
+                if(!memberId){
+                    return res.status(400).json({
+                            message:'please provide memberId'
+                    })
+                }
+                
+                const result = await WorkspaceMembermodel.findByIdAndDelete(memberId);
+                if(!result){
+                    return res.status(404).json({
+                            message:'member not found'
+                    })
+                }
+                
+                return res.status(200).json({
+                        message:'member removed successfully',
+                        member: result
+                })
+        }catch(error){
+                return res.status(500).json({
+                        message:"error removing member from workspace",
+                        error: error.message
+                })
+        }
+}
+
 module.exports = {
     createWorkspace,
     addMemberToWorkspace,
     getAllWorkspaces,
-    getAllMemberOfWorkspace
+    getAllMemberOfWorkspace,
+    removeMemberFromWorkspace
 }
 

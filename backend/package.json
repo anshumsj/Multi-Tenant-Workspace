@@ -20,7 +20,6 @@
     "mongoose": "^9.2.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.3",
-    "nodemon": "^3.1.14",
-    "react-router-dom": "^7.13.2"
+    "nodemon": "^3.1.14"
   }
 }

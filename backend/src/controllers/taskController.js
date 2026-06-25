@@ -39,8 +39,8 @@ const createTask = async (req,res) => {
           const invalidAssignees = [];// for future use
           // we need to check if the assignees are real users and are members of this workspace
           const validationResults = await Promise.all(assignees.map(async (assigneeId) => {
-              if(await workspaceMemberModel.findOne({
-                  workspaceId,userId:assigneeId
+              if(await projectMemberModel.findOne({
+                  projectId:projectId,userId:assigneeId
               })){
                   return {assigneeId, valid: true};
               }else{
@@ -330,11 +330,33 @@ const addResource = async (req, res) => {
 };
         
 
+const deleteTask = async (req, res) => {
+    try {
+        const { workspaceId, projectId, taskId } = req.params;
+        const userId = req.userId;
+        
+        const project = await projectmodel.findOne({ _id: projectId, workspaceId });
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+        
+        if (project.projectLead.toString() !== userId) {
+            return res.status(403).json({ success: false, message: "Only project lead can delete tasks" });
+        }
+        
+        const task = await taskmodel.findOneAndDelete({ _id: taskId, projectId, workspaceId });
+        if (!task) return res.status(404).json({ success: false, message: "Task not found" });
+        
+        return res.status(200).json({ success: true, message: "Task deleted successfully" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+    }
+};
+
 module.exports = {
     createTask,
     getAllTasks,
     getSingleTask,
     updateTask,
     addComment,
-    addResource
+    addResource,
+    deleteTask
 }

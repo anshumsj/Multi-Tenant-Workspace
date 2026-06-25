@@ -12,6 +12,7 @@ taskRouter.get('/getSingleTask/:projectId/:taskId/:workspaceId',authMiddleware.t
 taskRouter.patch('/updateTask/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,taskController.updateTask);
 taskRouter.post('/addComment/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,taskController.addComment);
 taskRouter.patch('/addResource/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,upload.single('file'),taskController.addResource);
+taskRouter.delete('/deleteTask/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,taskController.deleteTask);
 
 // check update task and add comment function
 

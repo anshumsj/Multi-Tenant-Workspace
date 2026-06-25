@@ -18,6 +18,6 @@ const workspaceMemberSchema = new mongoose.Schema({
     }
 ,{timestamps:true})
 workspaceMemberSchema.index({workspaceId:1,userId:1},{unique:true})
-workspaceMemberSchema.index({workspaceId:1,role:1},{unique:true,partialFilterExpressionL: {role:'owner'}})
+workspaceMemberSchema.index({workspaceId:1,role:1},{unique:true,partialFilterExpression: {role:'owner'}})
 const WorkspaceMember = mongoose.model('WorkspaceMember',workspaceMemberSchema);
 module.exports = WorkspaceMember;

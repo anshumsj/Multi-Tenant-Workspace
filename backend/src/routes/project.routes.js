@@ -19,5 +19,6 @@ projectRouter.delete('/delete/:projectId/:workspaceId',authMiddleware.tokenVerif
   
 projectRouter.patch('/changelead/:projectId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,workspaceMiddleware.roleVerificationMiddleware(['owner']),projectController.changeProjectLead) 
 projectRouter.post('/addMember/:projectId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,projectController.addMemberToProject)    
+projectRouter.get('/getMembers/:projectId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,projectController.getProjectMembers)
 
 module.exports = projectRouter;

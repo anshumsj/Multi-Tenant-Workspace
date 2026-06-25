@@ -8,5 +8,6 @@ workspacerouter.post('/create',authMiddleware.tokenVerificationMiddleware,worksp
 workspacerouter.post('/:workspaceId/addMember',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,workspaceMiddleware.roleVerificationMiddleware(['owner','admin']) ,workspaceController.addMemberToWorkspace)
 workspacerouter.get('/getAllWorkspaces',authMiddleware.tokenVerificationMiddleware,workspaceController.getAllWorkspaces)
 workspacerouter.get('/getAllMembers/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,workspaceController.getAllMemberOfWorkspace)
+workspacerouter.delete('/removeMember/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,workspaceMiddleware.roleVerificationMiddleware(['owner','admin']),workspaceController.removeMemberFromWorkspace)
 
 module.exports = workspacerouter;

@@ -19,6 +19,7 @@ const projectRouter = require('./routes/project.routes');
 const taskRouter = require('./routes/taskroutes');
 const userRouter = require('./routes/user.routes');
 const connectDB = require('./config/db');
+const errorHandler = require('./middlewares/errorHandler');
 connectDB();
 
 // // Log all incoming requests
@@ -39,4 +40,8 @@ app.use('/api/user',userRouter);
 // app.get('/',(req,res)=>{
 //     res.status(200).json({message:"hello there we re starting with our new project and we will finish this and will learn a lot from it and after this we will be a better developer"})
 // })
+
+// Global error handler should be the last middleware
+app.use(errorHandler);
+
 module.exports = app;

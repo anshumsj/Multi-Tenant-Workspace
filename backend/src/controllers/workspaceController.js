@@ -96,8 +96,9 @@ const getAllWorkspaces = asyncHandler(async (req, res) => {
     const userId = req.userId;
     const workspaceMembers = await WorkspaceMembermodel.find({userId:userId}).populate('workspaceId');
     if(workspaceMembers.length === 0){
-        return res.status(404).json({
-                message:'you are not a member of any workspace'
+        return res.status(200).json({
+                message:'you are not a member of any workspace',
+                workspaces: []
         });
     }
     const workspaces = workspaceMembers.map(member => member.workspaceId);
@@ -111,8 +112,9 @@ const getAllMemberOfWorkspace = asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId;
     const members = await WorkspaceMembermodel.find({workspaceId:workspaceId}).populate('userId','name email').select('role userId');
     if(members.length === 0){
-        return res.status(404).json({
-                message:'no members found in this workspace'
+        return res.status(200).json({
+                message:'no members found in this workspace',
+                members: []
         });
     }
     return res.status(200).json({

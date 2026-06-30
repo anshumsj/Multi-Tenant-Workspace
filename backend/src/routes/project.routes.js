@@ -4,6 +4,7 @@ const projectController = require('../controllers/projectController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const workspaceMiddleware = require('../middlewares/workspaceMiddleware');
 const validate = require('../middlewares/validators/validate');
+const validateObjectId = require('../middlewares/validateObjectId');
 const {
     createProjectValidator,
     updateProjectValidator,
@@ -11,6 +12,10 @@ const {
     addMemberToProjectValidator,
     projectParamsValidator
 } = require('../middlewares/validators/projectValidator');
+
+// Reject malformed ObjectIds before they reach Mongoose
+projectRouter.param('workspaceId', validateObjectId);
+projectRouter.param('projectId', validateObjectId);
 
 projectRouter.post('/create/:workspaceId',authMiddleware.tokenVerificationMiddleware,
   workspaceMiddleware.memberVerificationMiddleware,workspaceMiddleware.roleVerificationMiddleware(['owner','admin']),createProjectValidator, validate, projectController.createProject)

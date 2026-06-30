@@ -1,16 +1,32 @@
 import React from 'react'
-import {useNavigate} from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/authContext'
+import { logoutUser } from '../api/authApi'
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const navItems = [
-    { label: 'Dashboard', path: '/' },
-    { label: 'Project', path: '/project' },
-    { label: 'Task', path: '/task' },
-    { label: 'Workspace', path: '/workspace' },
-    { label: 'Login', path: '/login' },
-    { label: 'Register', path: '/register' },
-  ];
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+    logout();
+    navigate('/login');
+  };
+
+  const navItems = user 
+    ? [
+        { label: 'Dashboard', path: '/' },
+        { label: 'Workspace', path: '/workspace' },
+        { label: 'Project', path: '/project' },
+      ]
+    : [
+        { label: 'Login', path: '/login' },
+        { label: 'Register', path: '/register' },
+      ];
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -32,6 +48,14 @@ const Navbar = () => {
               {item.label}
             </button>
           ))}
+          {user && (
+            <button
+              onClick={handleLogout}
+              className="ml-2 rounded-md bg-red-50 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-100 hover:text-red-700 font-medium"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </nav>
     </header>

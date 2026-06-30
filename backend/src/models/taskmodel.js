@@ -47,8 +47,8 @@ const taskSchema = new mongoose.Schema({
     },
     status:{
         type:String,
-        enum:['assigned','accepted','in_progress','on_review','completed'],
-        default:'assigned',
+        enum:['todo','in-progress','completed'],
+        default:'todo',
         required:true
     },
     createdBy:{

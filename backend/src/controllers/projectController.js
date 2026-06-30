@@ -10,10 +10,10 @@ const createProject = asyncHandler(async (req, res) => {
     const userId = req.userId;
     const {name, description, projectLead} = req.body;
     
-    if(!name || !description || name.length < 8 || name.length > 100 || description.length >500){
+    if(!name || !description || name.length < 2 || name.length > 100 || description.length >500){
         return res.status(400).json({
             success:false,
-            message:"Invalid input data. Please provide valid name and description for the project."
+            message:"Invalid input data. Project name must be 2-100 characters and description under 500 characters."
         });
     }
     const newProject = await projectModel.create({

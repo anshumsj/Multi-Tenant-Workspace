@@ -29,3 +29,8 @@ export const addMemberToProject = async (projectId, workspaceId, data) => {
     const response = await axiosInstance.post(`/project/addMember/${projectId}/${workspaceId}`, data);
     return response.data;
 };
+
+export const getProjectMembers = async (projectId, workspaceId) => {
+    const response = await axiosInstance.get(`/project/getMembers/${projectId}/${workspaceId}`);
+    return response.data;
+};

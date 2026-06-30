@@ -266,19 +266,25 @@ const addResource = asyncHandler(async (req, res) => {
         }
 
         const uploadResult = await new Promise((resolve, reject) => {
+            const extension = req.file.originalname.split('.').pop().toLowerCase();
+            const isImageOrVideo = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'].includes(extension);
+
+            // Images/videos → 'auto' → served via /image/ or /video/ pipeline (renders correctly)
+            // Documents (PDF, DOCX, etc.) → 'raw' → served as-is with correct MIME type via /raw/ URL
+            const resourceType = isImageOrVideo ? "auto" : "raw";
+
+            // Strip extension from public_id — Cloudinary appends it automatically for raw uploads
+            const nameWithoutExt = req.file.originalname.split('.').slice(0, -1).join('.');
+            const uniquePublicId = `${Date.now()}_${nameWithoutExt}`;
+
             cloudinary.uploader.upload_stream(
                 {
-                    resource_type: "auto", 
+                    resource_type: resourceType,
                     folder: "task-resources",
-                    public_id: req.file.originalname.split('.')[0],
-                    use_filename: true,
-                    unique_filename: false,
-                    format: req.file.originalname.split('.').pop()
+                    public_id: uniquePublicId,
                 },
                 (error, result) => {
-                    if (error) {
-                        return reject(error);
-                    }
+                    if (error) return reject(error);
                     return resolve(result);
                 }
             ).end(req.file.buffer);
@@ -312,6 +318,56 @@ const deleteTask = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: "Task deleted successfully" });
 });
 
+const deleteResource = asyncHandler(async (req, res) => {
+    const workspaceId = req.workspaceId;
+    const userId = req.userId;
+    const { projectId, taskId, resourceId } = req.params;
+
+    const task = await taskmodel.findOne({ _id: taskId, projectId, workspaceId });
+    if (!task) {
+        return res.status(404).json({ success: false, message: "Task not found." });
+    }
+
+    // Only assignees can manage resources
+    if (!task.assignees.some(id => id.toString() === userId)) {
+        return res.status(403).json({ success: false, message: "Only task assignees can delete resources." });
+    }
+
+    const resource = task.resources.id(resourceId);
+    if (!resource) {
+        return res.status(404).json({ success: false, message: "Resource not found." });
+    }
+
+    // If it's a Cloudinary file, delete it from Cloudinary too
+    if (resource.type === "file" && resource.url) {
+        try {
+            // Extract public_id from the URL: folder/filename (without extension for raw)
+            const urlParts = resource.url.split('/');
+            const uploadIndex = urlParts.indexOf('upload');
+            if (uploadIndex !== -1) {
+                // Parts after 'upload' are: v<version>, folder, filename
+                const pathAfterUpload = urlParts.slice(uploadIndex + 2).join('/');
+                const publicIdWithExt = pathAfterUpload;
+                // Determine resource type from URL path
+                const resourceTypeFromUrl = urlParts.includes('image') ? 'image' : urlParts.includes('video') ? 'video' : 'raw';
+                // Strip extension for non-raw types; keep for raw
+                const publicId = resourceTypeFromUrl === 'raw'
+                    ? publicIdWithExt.split('.').slice(0, -1).join('.')
+                    : publicIdWithExt.split('.').slice(0, -1).join('.');
+                await cloudinary.uploader.destroy(publicId, { resource_type: resourceTypeFromUrl });
+            }
+        } catch (err) {
+            // Non-fatal: log but still remove from DB
+            console.error('Cloudinary delete failed:', err.message);
+        }
+    }
+
+    task.resources.pull(resourceId);
+    await task.save();
+
+    return res.status(200).json({ success: true, message: "Resource deleted successfully.", task });
+});
+
 module.exports = {
     createTask,
     getAllTasks,
@@ -319,5 +375,6 @@ module.exports = {
     updateTask,
     addComment,
     addResource,
-    deleteTask
+    deleteTask,
+    deleteResource
 };

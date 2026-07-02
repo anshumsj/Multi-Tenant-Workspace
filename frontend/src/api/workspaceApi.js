@@ -24,3 +24,13 @@ export const removeMemberFromWorkspace = async (workspaceId, data) => {
     const response = await axiosInstance.delete(`/workspace/removeMember/${workspaceId}`, { data });
     return response.data;
 };
+
+export const deleteWorkspace = async (workspaceId) => {
+    const response = await axiosInstance.delete(`/workspace/${workspaceId}`);
+    return response.data;
+};
+
+export const updateWorkspace = async (workspaceId, data) => {
+    const response = await axiosInstance.patch(`/workspace/${workspaceId}`, data);
+    return response.data;
+};

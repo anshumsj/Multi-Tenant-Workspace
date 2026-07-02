@@ -8,7 +8,8 @@ const validateObjectId = require('../middlewares/validateObjectId');
 const {
     createWorkspaceValidator,
     addMemberToWorkspaceValidator,
-    workspaceParamsValidator
+    workspaceParamsValidator,
+    updateWorkspaceValidator
 } = require('../middlewares/validators/workspaceValidator');
 
 // Reject malformed ObjectIds before they reach Mongoose
@@ -18,5 +19,7 @@ workspacerouter.post('/:workspaceId/addMember',authMiddleware.tokenVerificationM
 workspacerouter.get('/getAllWorkspaces',authMiddleware.tokenVerificationMiddleware,workspaceController.getAllWorkspaces)
 workspacerouter.get('/getAllMembers/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, workspaceParamsValidator, validate, workspaceController.getAllMemberOfWorkspace)
 workspacerouter.delete('/removeMember/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,workspaceMiddleware.roleVerificationMiddleware(['owner','admin']), workspaceParamsValidator, validate, workspaceController.removeMemberFromWorkspace)
+workspacerouter.delete('/:workspaceId',authMiddleware.tokenVerificationMiddleware, workspaceMiddleware.memberVerificationMiddleware, workspaceParamsValidator, validate, workspaceController.deleteWorkspace)
+workspacerouter.patch('/:workspaceId',authMiddleware.tokenVerificationMiddleware, workspaceMiddleware.memberVerificationMiddleware, workspaceMiddleware.roleVerificationMiddleware(['owner','admin']), updateWorkspaceValidator, validate, workspaceController.updateWorkspace)
 
 module.exports = workspacerouter;

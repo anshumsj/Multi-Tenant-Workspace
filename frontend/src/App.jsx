@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Project from './pages/Project'
 import Task from './pages/Task'
 import Workspace from './pages/Workspace'
+import Profile from './pages/Profile'
 import Login from './pages/login'
 import Register from './pages/register'
 import Navbar from './components/navbar'
@@ -21,6 +22,7 @@ const App = () => {
           <Route path='/workspace' element={<Workspace />} />
           <Route path='/project' element={<Project />} />
           <Route path='/project/:projectId/tasks' element={<Task />} />
+          <Route path='/profile' element={<Profile />} />
         </Route>
 
         {/* ── Guest-only routes — redirect if already logged in ────────── */}

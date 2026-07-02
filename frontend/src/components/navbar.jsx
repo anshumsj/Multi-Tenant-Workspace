@@ -17,6 +17,10 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const initials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+
   const navItems = user 
     ? [
         { label: 'Dashboard', path: '/' },
@@ -49,12 +53,32 @@ const Navbar = () => {
             </button>
           ))}
           {user && (
-            <button
-              onClick={handleLogout}
-              className="ml-2 rounded-md bg-red-50 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-100 hover:text-red-700 font-medium"
-            >
-              Logout
-            </button>
+            <>
+              <button
+                onClick={handleLogout}
+                className="ml-2 rounded-md bg-red-50 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-100 hover:text-red-700 font-medium"
+              >
+                Logout
+              </button>
+              {/* Avatar / initials — navigates to profile */}
+              <button
+                onClick={() => navigate('/profile')}
+                title="Edit profile"
+                className="ml-1 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-full"
+              >
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || 'avatar'}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-sky-200 hover:ring-sky-400 transition"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-sky-100 ring-2 ring-sky-200 hover:ring-sky-400 flex items-center justify-center text-sky-700 text-xs font-bold transition">
+                    {initials}
+                  </div>
+                )}
+              </button>
+            </>
           )}
         </div>
       </nav>
@@ -62,4 +86,4 @@ const Navbar = () => {
   )
 }
 
-export default Navbar
+export default Navbar

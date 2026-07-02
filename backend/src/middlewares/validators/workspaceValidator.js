@@ -24,3 +24,17 @@ exports.addMemberToWorkspaceValidator = [
 exports.workspaceParamsValidator = [
     param('workspaceId').isMongoId().withMessage('Invalid workspace ID')
 ];
+
+exports.updateWorkspaceValidator = [
+    param('workspaceId').isMongoId().withMessage('Invalid workspace ID'),
+    body('name')
+        .optional()
+        .trim()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Workspace name must be between 2 and 100 characters'),
+    body('description')
+        .optional()
+        .trim()
+        .isLength({ max: 500 })
+        .withMessage('Description must not exceed 500 characters')
+];

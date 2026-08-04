@@ -47,7 +47,11 @@ const login = asyncHandler(async (req, res) => {
     }
     
     const token = JWT.sign({id:existinguser._id}, process.env.JWT_SECRET, {expiresIn:'1d'});
-    res.cookie('token', token, { httpOnly: true });
+    res.cookie('token', token, { 
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
     
     return res.status(200).json({
         message: "user logged in successfully",
@@ -57,7 +61,11 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
-    res.clearCookie('token', { httpOnly: true });
+    res.clearCookie('token', { 
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
     return res.status(200).json({ message: "user logged out successfully" });
 });
 

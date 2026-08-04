@@ -11,6 +11,8 @@ const Project = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [projectsPage, setProjectsPage] = useState(1);
+  const [projectsTotalPages, setProjectsTotalPages] = useState(1);
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectData, setNewProjectData] = useState({ name: '', description: '', projectLead: '' });
@@ -39,13 +41,15 @@ const Project = () => {
   const [newMemberId, setNewMemberId] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [projectMembersPage, setProjectMembersPage] = useState(1);
+  const [projectMembersTotalPages, setProjectMembersTotalPages] = useState(1);
 
   // Dropdown state
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const fetchWorkspaceMembers = async () => {
     try {
-      const data = await getAllMembersOfWorkspace(activeWorkspace._id);
+      const data = await getAllMembersOfWorkspace(activeWorkspace._id, 1, 1000);
       setWorkspaceMembers(data.members || []);
     } catch (err) {
       console.error('Failed to fetch workspace members', err);
@@ -59,11 +63,13 @@ const Project = () => {
     }
   }, [activeWorkspace]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (page = 1) => {
     try {
       setLoading(true);
-      const data = await getAllProjects(activeWorkspace._id);
+      const data = await getAllProjects(activeWorkspace._id, page, 20);
       setProjects(data.projects || data || []);
+      setProjectsTotalPages(data.pagination?.totalPages || 1);
+      setProjectsPage(page);
     } catch (err) {
       console.error('Failed to fetch projects', err);
       setError('Failed to fetch projects for this workspace.');
@@ -148,19 +154,25 @@ const Project = () => {
     }
   };
 
-  const openMembersModal = async (project) => {
-    setSelectedProject(project);
-    setShowMembersModal(true);
-    setMembersLoading(true);
-    setOpenDropdown(null);
+  const fetchProjectMembersList = async (projectId, page = 1) => {
     try {
-      const pMembers = await getProjectMembers(project._id, activeWorkspace._id);
+      setMembersLoading(true);
+      const pMembers = await getProjectMembers(projectId, activeWorkspace._id, page, 20);
       setProjectMembers(pMembers.members || []);
+      setProjectMembersTotalPages(pMembers.pagination?.totalPages || 1);
+      setProjectMembersPage(page);
     } catch (err) {
       console.error('Failed to fetch members', err);
     } finally {
       setMembersLoading(false);
     }
+  };
+
+  const openMembersModal = async (project) => {
+    setSelectedProject(project);
+    setShowMembersModal(true);
+    setOpenDropdown(null);
+    fetchProjectMembersList(project._id, 1);
   };
 
   const handleAddMember = async (e) => {
@@ -171,8 +183,7 @@ const Project = () => {
       setIsAddingMember(true);
       await addMemberToProject(selectedProject._id, activeWorkspace._id, { newMemberId });
       
-      const pMembers = await getProjectMembers(selectedProject._id, activeWorkspace._id);
-      setProjectMembers(pMembers.members || []);
+      fetchProjectMembersList(selectedProject._id, projectMembersPage);
       setNewMemberId('');
     } catch (err) {
       console.error('Failed to add member', err);
@@ -224,7 +235,8 @@ const Project = () => {
       {loading ? (
         <div className="py-12 text-center text-slate-500">Loading projects...</div>
       ) : projects && projects.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((proj) => (
             <div 
               key={proj._id}
@@ -320,7 +332,27 @@ const Project = () => {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          {projectsTotalPages > 1 && (
+            <div className="flex justify-between items-center mt-8">
+              <button 
+                onClick={() => fetchProjects(projectsPage - 1)}
+                disabled={projectsPage === 1}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg disabled:opacity-50 text-sm font-medium hover:bg-slate-200 transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-slate-600 font-medium">Page {projectsPage} of {projectsTotalPages}</span>
+              <button 
+                onClick={() => fetchProjects(projectsPage + 1)}
+                disabled={projectsPage === projectsTotalPages}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg disabled:opacity-50 text-sm font-medium hover:bg-slate-200 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center rounded-2xl border border-dashed border-slate-300 py-16">
           <h3 className="text-lg font-semibold text-slate-900">No projects yet</h3>
@@ -573,6 +605,25 @@ const Project = () => {
                     </ul>
                   ) : (
                     <p className="text-sm text-slate-500 italic">No members found.</p>
+                  )}
+                  {projectMembersTotalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4 border-t border-slate-200 pt-4">
+                      <button 
+                        onClick={() => fetchProjectMembersList(selectedProject._id, projectMembersPage - 1)}
+                        disabled={projectMembersPage === 1}
+                        className="px-3 py-1 bg-slate-100 text-slate-700 rounded disabled:opacity-50 text-sm hover:bg-slate-200"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-slate-600">Page {projectMembersPage} of {projectMembersTotalPages}</span>
+                      <button 
+                        onClick={() => fetchProjectMembersList(selectedProject._id, projectMembersPage + 1)}
+                        disabled={projectMembersPage === projectMembersTotalPages}
+                        className="px-3 py-1 bg-slate-100 text-slate-700 rounded disabled:opacity-50 text-sm hover:bg-slate-200"
+                      >
+                        Next
+                      </button>
+                    </div>
                   )}
                 </div>
 

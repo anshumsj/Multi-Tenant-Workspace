@@ -79,5 +79,7 @@ All endpoints are prefixed with the base URL: `http://localhost:3000/api`
   - Add a comment to a task (Requires being assigned to the task).
 - **`PATCH /task/addResource/:workspaceId/:projectId/:taskId`** 
   - Upload and attach a file/link resource to a task (Requires being assigned to the task).
+- **`DELETE /task/deleteResource/:workspaceId/:projectId/:taskId/:resourceId`**
+  - Delete a specific resource from a task and Cloudinary (Requires being assigned to the task).
 - **`DELETE /task/deleteTask/:workspaceId/:projectId/:taskId`** 
   - Permanently delete a task (Requires Project Lead).

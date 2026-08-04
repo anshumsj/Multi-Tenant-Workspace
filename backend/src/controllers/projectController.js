@@ -84,11 +84,27 @@ const changeProjectLead = asyncHandler(async (req, res) => {
 
 const getAllProjects = asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId;
-    const projects = await projectModel.find({workspaceId}).populate('projectLead','name email');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const projects = await projectModel.find({workspaceId})
+        .populate('projectLead','name email')
+        .skip(skip)
+        .limit(limit);
+
+    const totalProjects = await projectModel.countDocuments({workspaceId});
+
     res.status(200).json({
         success:true,
         message:"Projects retrieved successfully",
-        projects
+        projects,
+        pagination: {
+            total: totalProjects,
+            page,
+            limit,
+            totalPages: Math.ceil(totalProjects / limit)
+        }
     });
 });
 
@@ -203,8 +219,27 @@ const addMemberToProject = asyncHandler(async (req, res) => {
 
 const getProjectMembers = asyncHandler(async (req, res) => {
     const { workspaceId, projectId } = req.params;
-    const members = await projectMemberModel.find({ projectId }).populate('userId', 'name email');
-    res.status(200).json({ success: true, members });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const members = await projectMemberModel.find({ projectId })
+        .populate('userId', 'name email')
+        .skip(skip)
+        .limit(limit);
+
+    const totalMembers = await projectMemberModel.countDocuments({ projectId });
+
+    res.status(200).json({ 
+        success: true, 
+        members,
+        pagination: {
+            total: totalMembers,
+            page,
+            limit,
+            totalPages: Math.ceil(totalMembers / limit)
+        }
+    });
 });
 
 module.exports = {

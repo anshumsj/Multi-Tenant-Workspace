@@ -21,6 +21,8 @@ const Workspace = () => {
   const [newMemberRole, setNewMemberRole] = useState('member');
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [membersPage, setMembersPage] = useState(1);
+  const [membersTotalPages, setMembersTotalPages] = useState(1);
 
   // Edit workspace state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -55,14 +57,17 @@ const Workspace = () => {
     e.stopPropagation();
     setSelectedWorkspace(workspace);
     setShowMembersModal(true);
-    fetchMembers(workspace._id);
+    setMembersPage(1);
+    fetchMembers(workspace._id, 1);
   };
 
-  const fetchMembers = async (workspaceId) => {
+  const fetchMembers = async (workspaceId, page = 1) => {
     try {
       setMembersLoading(true);
-      const data = await getAllMembersOfWorkspace(workspaceId);
+      const data = await getAllMembersOfWorkspace(workspaceId, page, 20);
       setWorkspaceMembers(data.members || []);
+      setMembersTotalPages(data.pagination?.totalPages || 1);
+      setMembersPage(page);
     } catch (err) {
       console.error('Failed to fetch members', err);
     } finally {
@@ -414,6 +419,25 @@ const Workspace = () => {
                     </ul>
                   ) : (
                     <p className="text-sm text-slate-500 italic">No members found.</p>
+                  )}
+                  {membersTotalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4 border-t border-slate-200 pt-4">
+                      <button 
+                        onClick={() => fetchMembers(selectedWorkspace._id, membersPage - 1)}
+                        disabled={membersPage === 1}
+                        className="px-3 py-1 bg-slate-100 text-slate-700 rounded disabled:opacity-50 text-sm hover:bg-slate-200"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-slate-600">Page {membersPage} of {membersTotalPages}</span>
+                      <button 
+                        onClick={() => fetchMembers(selectedWorkspace._id, membersPage + 1)}
+                        disabled={membersPage === membersTotalPages}
+                        className="px-3 py-1 bg-slate-100 text-slate-700 rounded disabled:opacity-50 text-sm hover:bg-slate-200"
+                      >
+                        Next
+                      </button>
+                    </div>
                   )}
                 </div>
 

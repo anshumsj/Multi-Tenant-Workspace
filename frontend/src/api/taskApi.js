@@ -1,7 +1,7 @@
 import axiosInstance from './axios';
 
-export const getAllTasks = async (projectId, workspaceId) => {
-    const response = await axiosInstance.get(`/task/getAllTasks/${projectId}/${workspaceId}`);
+export const getAllTasks = async (projectId, workspaceId, page = 1, limit = 20) => {
+    const response = await axiosInstance.get(`/task/getAllTasks/${projectId}/${workspaceId}`, { params: { page, limit } });
     return response.data;
 };
 
@@ -17,6 +17,11 @@ export const createTask = async (projectId, workspaceId, data) => {
 
 export const updateTask = async (workspaceId, projectId, taskId, data) => {
     const response = await axiosInstance.patch(`/task/updateTask/${workspaceId}/${projectId}/${taskId}`, data);
+    return response.data;
+};
+
+export const updateTaskStatus = async (workspaceId, projectId, taskId, status) => {
+    const response = await axiosInstance.patch(`/task/updateTaskStatus/${workspaceId}/${projectId}/${taskId}`, { status });
     return response.data;
 };
 

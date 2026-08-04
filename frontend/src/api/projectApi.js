@@ -1,7 +1,7 @@
 import axiosInstance from './axios';
 
-export const getAllProjects = async (workspaceId) => {
-    const response = await axiosInstance.get(`/project/getAllProjects/${workspaceId}`);
+export const getAllProjects = async (workspaceId, page = 1, limit = 20) => {
+    const response = await axiosInstance.get(`/project/getAllProjects/${workspaceId}`, { params: { page, limit } });
     return response.data;
 };
 
@@ -30,7 +30,7 @@ export const addMemberToProject = async (projectId, workspaceId, data) => {
     return response.data;
 };
 
-export const getProjectMembers = async (projectId, workspaceId) => {
-    const response = await axiosInstance.get(`/project/getMembers/${projectId}/${workspaceId}`);
+export const getProjectMembers = async (projectId, workspaceId, page = 1, limit = 20) => {
+    const response = await axiosInstance.get(`/project/getMembers/${projectId}/${workspaceId}`, { params: { page, limit } });
     return response.data;
 };

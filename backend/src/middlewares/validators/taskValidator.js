@@ -43,7 +43,7 @@ exports.updateTaskValidator = [
     body('status')
         .optional()
         .trim()
-        .isIn(['todo', 'in-progress', 'completed'])
+        .isIn(['assigned', 'accepted', 'in_progress', 'on_review', 'completed'])
         .withMessage('Invalid status'),
     body('assignees')
         .optional()
@@ -78,4 +78,14 @@ exports.taskParamsValidator = [
 exports.projectTaskParamsValidator = [
     param('workspaceId').isMongoId().withMessage('Invalid workspace ID'),
     param('projectId').isMongoId().withMessage('Invalid project ID')
+];
+
+exports.updateTaskStatusValidator = [
+    param('workspaceId').isMongoId().withMessage('Invalid workspace ID'),
+    param('projectId').isMongoId().withMessage('Invalid project ID'),
+    param('taskId').isMongoId().withMessage('Invalid task ID'),
+    body('status')
+        .trim()
+        .isIn(['assigned', 'accepted', 'in_progress', 'on_review', 'completed'])
+        .withMessage('Invalid status')
 ];

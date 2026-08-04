@@ -113,16 +113,34 @@ const getAllWorkspaces = asyncHandler(async (req, res) => {
 
 const getAllMemberOfWorkspace = asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId;
-    const members = await WorkspaceMembermodel.find({workspaceId:workspaceId}).populate('userId','name email').select('role userId');
-    if(members.length === 0){
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const members = await WorkspaceMembermodel.find({workspaceId:workspaceId})
+        .populate('userId','name email')
+        .select('role userId')
+        .skip(skip)
+        .limit(limit);
+
+    const totalMembers = await WorkspaceMembermodel.countDocuments({workspaceId:workspaceId});
+
+    if(members.length === 0 && page === 1){
         return res.status(200).json({
                 message:'no members found in this workspace',
-                members: []
+                members: [],
+                pagination: { total: 0, page, limit, totalPages: 0 }
         });
     }
     return res.status(200).json({
             message:'members fetched successfully',
-            members: members
+            members: members,
+            pagination: {
+                total: totalMembers,
+                page,
+                limit,
+                totalPages: Math.ceil(totalMembers / limit)
+            }
     });
 });
 

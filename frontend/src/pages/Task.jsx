@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../context/workspaceContext';
-import { getAllTasks, createTask, updateTask, deleteTask, addComment, addResource, deleteResource } from '../api/taskApi';
+import { getAllTasks, createTask, updateTask, updateTaskStatus, deleteTask, addComment, addResource, deleteResource } from '../api/taskApi';
 import { getProjectMembers } from '../api/projectApi';
 
 const Task = () => {
@@ -13,6 +13,8 @@ const Task = () => {
   const [projectMembers, setProjectMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [tasksPage, setTasksPage] = useState(1);
+  const [tasksTotalPages, setTasksTotalPages] = useState(1);
 
   // Create Task Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,18 +40,20 @@ const Task = () => {
       return;
     }
     if (projectId) {
-      fetchTasksAndMembers();
+      fetchTasksAndMembers(1);
     }
   }, [projectId, activeWorkspace]);
 
-  const fetchTasksAndMembers = async () => {
+  const fetchTasksAndMembers = async (page = 1) => {
     try {
       setLoading(true);
       const [tasksData, membersData] = await Promise.all([
-        getAllTasks(projectId, activeWorkspace._id),
-        getProjectMembers(projectId, activeWorkspace._id)
+        getAllTasks(projectId, activeWorkspace._id, page, 20),
+        getProjectMembers(projectId, activeWorkspace._id, 1, 1000)
       ]);
       setTasks(tasksData.tasks || []);
+      setTasksTotalPages(tasksData.pagination?.totalPages || 1);
+      setTasksPage(page);
       setProjectMembers(membersData.members || []);
     } catch (err) {
       console.error('Failed to fetch tasks/members', err);
@@ -68,7 +72,7 @@ const Task = () => {
       await createTask(projectId, activeWorkspace._id, newTaskData);
       setNewTaskData({ name: '', description: '', deadline: '', assignees: [] });
       setShowCreateModal(false);
-      await fetchTasksAndMembers();
+      await fetchTasksAndMembers(1);
     } catch (err) {
       console.error('Failed to create task', err);
       alert(err?.response?.data?.message || 'Failed to create task.');
@@ -80,8 +84,8 @@ const Task = () => {
   const handleStatusChange = async (taskId, newStatus, e) => {
     if (e) e.stopPropagation();
     try {
-      await updateTask(activeWorkspace._id, projectId, taskId, { status: newStatus });
-      await fetchTasksAndMembers();
+      await updateTaskStatus(activeWorkspace._id, projectId, taskId, newStatus);
+      await fetchTasksAndMembers(tasksPage);
       if (selectedTask && selectedTask._id === taskId) {
         setSelectedTask(prev => ({ ...prev, status: newStatus }));
       }
@@ -100,11 +104,11 @@ const Task = () => {
       await addComment(activeWorkspace._id, projectId, selectedTask._id, { comment: newComment });
       setNewComment('');
       // Refresh to get new comments
-      await fetchTasksAndMembers();
+      await fetchTasksAndMembers(tasksPage);
       
       // Update local selected task manually so we don't have to wait or if we want immediate feedback
       // Or just let it refresh on next open. For now, we rely on the main fetch and close/reopen or update state.
-      const freshTasks = await getAllTasks(projectId, activeWorkspace._id);
+      const freshTasks = await getAllTasks(projectId, activeWorkspace._id, tasksPage, 20);
       setTasks(freshTasks.tasks || []);
       const updatedTask = freshTasks.tasks.find(t => t._id === selectedTask._id);
       setSelectedTask(updatedTask);
@@ -141,8 +145,8 @@ const Task = () => {
       setResourceType('link');
       
       // Refresh task details
-      await fetchTasksAndMembers();
-      const freshTasks = await getAllTasks(projectId, activeWorkspace._id);
+      await fetchTasksAndMembers(tasksPage);
+      const freshTasks = await getAllTasks(projectId, activeWorkspace._id, tasksPage, 20);
       setTasks(freshTasks.tasks || []);
       const updatedTask = freshTasks.tasks.find(t => t._id === selectedTask._id);
       setSelectedTask(updatedTask);
@@ -158,7 +162,7 @@ const Task = () => {
     if (!window.confirm('Remove this resource?')) return;
     try {
       await deleteResource(activeWorkspace._id, projectId, selectedTask._id, resourceId);
-      const freshTasks = await getAllTasks(projectId, activeWorkspace._id);
+      const freshTasks = await getAllTasks(projectId, activeWorkspace._id, tasksPage, 20);
       setTasks(freshTasks.tasks || []);
       const updatedTask = freshTasks.tasks.find(t => t._id === selectedTask._id);
       setSelectedTask(updatedTask);
@@ -175,21 +179,30 @@ const Task = () => {
       await deleteTask(activeWorkspace._id, projectId, taskId);
       setShowTaskModal(false);
       setSelectedTask(null);
-      await fetchTasksAndMembers();
+      await fetchTasksAndMembers(tasksPage);
     } catch (err) {
       console.error('Failed to delete task', err);
       alert(err?.response?.data?.message || 'Failed to delete task.');
     }
   };
 
-  const columns = {
-    'todo': tasks.filter(t => t.status === 'todo'),
-    'in-progress': tasks.filter(t => t.status === 'in-progress'),
-    'completed': tasks.filter(t => t.status === 'completed')
-  };
+  const statuses = ['assigned', 'accepted', 'in_progress', 'on_review', 'completed'];
 
-  const getNextStatus = (current) => current === 'todo' ? 'in-progress' : 'completed';
-  const getPrevStatus = (current) => current === 'completed' ? 'in-progress' : 'todo';
+  const columns = statuses.reduce((acc, status) => {
+    acc[status] = tasks.filter(t => t.status === status);
+    return acc;
+  }, {});
+
+  const getNextStatus = (current) => {
+    const idx = statuses.indexOf(current);
+    if (idx !== -1 && idx < statuses.length - 1) return statuses[idx + 1];
+    return current;
+  };
+  const getPrevStatus = (current) => {
+    const idx = statuses.indexOf(current);
+    if (idx !== -1 && idx > 0) return statuses[idx - 1];
+    return current;
+  };
 
   if (!activeWorkspace) return null;
 
@@ -211,12 +224,35 @@ const Task = () => {
             <p className="text-sm text-slate-500">Workspace: {activeWorkspace.name}</p>
           </div>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 transition-colors"
-        >
-          + New Task
-        </button>
+        <div className="flex items-center gap-3">
+          {tasksTotalPages > 1 && (
+            <div className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 mr-2">
+              <button 
+                onClick={() => fetchTasksAndMembers(tasksPage - 1)}
+                disabled={tasksPage === 1}
+                className="p-1 text-slate-500 hover:text-slate-700 disabled:opacity-30 rounded hover:bg-slate-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <span className="text-xs font-medium text-slate-600">
+                {tasksPage} / {tasksTotalPages}
+              </span>
+              <button 
+                onClick={() => fetchTasksAndMembers(tasksPage + 1)}
+                disabled={tasksPage === tasksTotalPages}
+                className="p-1 text-slate-500 hover:text-slate-700 disabled:opacity-30 rounded hover:bg-slate-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          )}
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 transition-colors whitespace-nowrap"
+          >
+            + New Task
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -231,11 +267,11 @@ const Task = () => {
           <div className="flex justify-center items-center h-full text-slate-500">Loading tasks...</div>
         ) : (
           <div className="flex h-full gap-6 items-start w-max min-w-full">
-            {['todo', 'in-progress', 'completed'].map((status) => (
+            {statuses.map((status) => (
               <div key={status} className="w-80 flex flex-col max-h-full bg-slate-100/50 rounded-2xl border border-slate-200">
                 <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
                   <h3 className="font-semibold text-slate-700 uppercase tracking-wider text-xs">
-                    {status.replace('-', ' ')}
+                    {status.replace('_', ' ')}
                   </h3>
                   <span className="bg-white text-slate-500 text-xs py-0.5 px-2 rounded-full border border-slate-200 font-medium">
                     {columns[status].length}
@@ -262,7 +298,7 @@ const Task = () => {
                         
                         {/* Quick Move Buttons */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {status !== 'todo' && (
+                          {status !== 'assigned' && (
                             <button 
                               onClick={(e) => handleStatusChange(task._id, getPrevStatus(status), e)}
                               className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded"
@@ -381,7 +417,7 @@ const Task = () => {
               <div>
                 <div className="flex items-center gap-3 mb-1">
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 uppercase tracking-wider border border-sky-200">
-                    {selectedTask.status.replace('-', ' ')}
+                    {selectedTask.status.replace('_', ' ')}
                   </span>
                   <span className="text-xs text-slate-500">
                     Created by {selectedTask.createdBy?.name || 'Unknown'}
@@ -417,8 +453,10 @@ const Task = () => {
                   onChange={(e) => handleStatusChange(selectedTask._id, e.target.value)}
                   className="block w-48 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
-                  <option value="todo">Todo</option>
-                  <option value="in-progress">In Progress</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="on_review">On Review</option>
                   <option value="completed">Completed</option>
                 </select>
               </div>

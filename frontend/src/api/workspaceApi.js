@@ -15,8 +15,8 @@ export const addMemberToWorkspace = async (workspaceId, data) => {
     return response.data;
 };
 
-export const getAllMembersOfWorkspace = async (workspaceId) => {
-    const response = await axiosInstance.get(`/workspace/getAllMembers/${workspaceId}`);
+export const getAllMembersOfWorkspace = async (workspaceId, page = 1, limit = 20) => {
+    const response = await axiosInstance.get(`/workspace/getAllMembers/${workspaceId}`, { params: { page, limit } });
     return response.data;
 };
 

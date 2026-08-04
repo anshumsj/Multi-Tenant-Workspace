@@ -75,24 +75,59 @@ const createTask = asyncHandler(async (req, res) => {
 
 const getAllTasks = asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId;
+    const userId = req.userId;
     const projectId = req.params.projectId;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Project lead sees ALL tasks; regular members only see tasks they are assigned to.
+    const project = await projectmodel.findOne({ _id: projectId, workspaceId });
+    if (!project) {
+        return res.status(404).json({ success: false, message: "Project not found in the workspace." });
+    }
+
+    const isProjectLead = project.projectLead.toString() === userId;
+    const query = { projectId, workspaceId };
+    if (!isProjectLead) {
+        query.assignees = userId; // restrict to tasks the user is assigned to
+    }
+
     const tasks = await taskmodel
-        .find({projectId:projectId, workspaceId: workspaceId})
+        .find(query)
         .populate('createdBy','name email')
         .populate('assignees','name email')
         .populate('comments.commentBy','name email')
-        .sort({createdAt:-1});
+        .sort({createdAt:-1})
+        .skip(skip)
+        .limit(limit);
         
+    const totalTasks = await taskmodel.countDocuments(query);
+
     return res.status(200).json({
         success:true,
         message:"Tasks fetched successfully.",
-        tasks:tasks
+        tasks:tasks,
+        pagination: {
+            total: totalTasks,
+            page,
+            limit,
+            totalPages: Math.ceil(totalTasks / limit)
+        }
     });
 });
 
 const getSingleTask = asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId;
+    const userId = req.userId;
     const {projectId, taskId} = req.params;
+
+    const project = await projectmodel.findOne({ _id: projectId, workspaceId });
+    if (!project) {
+        return res.status(404).json({ success: false, message: "Project not found in the workspace." });
+    }
+
     const task = await taskmodel
         .findOne({_id:taskId, projectId:projectId, workspaceId:workspaceId})
         .populate('createdBy','name email')
@@ -103,6 +138,16 @@ const getSingleTask = asyncHandler(async (req, res) => {
         return res.status(404).json({
             success:false,
             message:"Task not found in the project."
+        });
+    }
+
+    // Only the project lead or an assignee of this specific task can view it.
+    const isProjectLead = project.projectLead.toString() === userId;
+    const isAssignee = task.assignees.some(assignee => assignee._id.toString() === userId);
+    if (!isProjectLead && !isAssignee) {
+        return res.status(403).json({
+            success: false,
+            message: "You are not authorised to view this task."
         });
     }
     
@@ -368,11 +413,70 @@ const deleteResource = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: "Resource deleted successfully.", task });
 });
 
+const updateTaskStatus = asyncHandler(async(req, res) => {
+    const workspaceId = req.workspaceId;
+    const userId = req.userId;
+    const projectId = req.params.projectId;
+    const taskId = req.params.taskId;
+    
+    const project = await projectmodel.findOne({
+        _id:projectId,
+        workspaceId:workspaceId
+    });
+    if(!project){
+        return res.status(404).json({
+            success:false,
+            message:"Project not found in the workspace."
+        });  
+    }
+    
+    const task = await taskmodel.findOne({_id:taskId, projectId:projectId, workspaceId:workspaceId});
+    if(!task){
+        return res.status(404).json({
+            success:false,
+            message:"Task not found in the project."
+        });
+    }
+
+    const isProjectLead = project.projectLead.toString() === userId;
+    const isAssignee = task.assignees.some(assigneeId => assigneeId.toString() === userId);
+
+    if (!isProjectLead && !isAssignee) {
+        return res.status(403).json({
+            success: false,
+            message: "Only project leads or assignees can update the task status."
+        });
+    }
+
+    const { status } = req.body;
+
+    // Assignees can only transition between assigned, accepted, in_progress, on_review
+    if (isAssignee && !isProjectLead) {
+        const allowedStatuses = ['assigned', 'accepted', 'in_progress', 'on_review'];
+        if (!allowedStatuses.includes(status)) {
+            return res.status(403).json({
+                success: false,
+                message: "Assignees cannot transition task to this status."
+            });
+        }
+    }
+
+    task.status = status;
+    await task.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Task status updated successfully.",
+        task: task
+    });
+});
+
 module.exports = {
     createTask,
     getAllTasks,
     getSingleTask,
     updateTask,
+    updateTaskStatus,
     addComment,
     addResource,
     deleteTask,

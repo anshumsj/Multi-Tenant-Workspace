@@ -10,6 +10,7 @@ const validateObjectId = require('../middlewares/validateObjectId');
 const {
     createTaskValidator,
     updateTaskValidator,
+    updateTaskStatusValidator,
     addCommentValidator,
     taskParamsValidator,
     projectTaskParamsValidator
@@ -19,10 +20,12 @@ const {
 taskRouter.param('workspaceId', validateObjectId);
 taskRouter.param('projectId', validateObjectId);
 taskRouter.param('taskId', validateObjectId);
+taskRouter.param('resourceId', validateObjectId);
 taskRouter.post('/create/:projectId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, createTaskValidator, validate, taskController.createTask);
 taskRouter.get('/getAllTasks/:projectId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,projectMiddleware.projectMemberVerificationMiddleware, projectTaskParamsValidator, validate, taskController.getAllTasks);
 taskRouter.get('/getSingleTask/:projectId/:taskId/:workspaceId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,projectMiddleware.projectMemberVerificationMiddleware, taskParamsValidator, validate, taskController.getSingleTask);
 taskRouter.patch('/updateTask/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, updateTaskValidator, validate, taskController.updateTask);
+taskRouter.patch('/updateTaskStatus/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, updateTaskStatusValidator, validate, taskController.updateTaskStatus);
 taskRouter.post('/addComment/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, addCommentValidator, validate, taskController.addComment);
 taskRouter.patch('/addResource/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware,upload.single('file'), taskParamsValidator, validate, taskController.addResource);
 taskRouter.delete('/deleteTask/:workspaceId/:projectId/:taskId',authMiddleware.tokenVerificationMiddleware,workspaceMiddleware.memberVerificationMiddleware, taskParamsValidator, validate, taskController.deleteTask);

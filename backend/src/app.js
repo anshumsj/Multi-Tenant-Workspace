@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no Origin header (e.g. curl/Postman) and known frontend URLs.
@@ -37,9 +37,12 @@ app.use('/api/workspace',workspaceRouter);
 app.use('/api/project',projectRouter);
 app.use('/api/task',taskRouter);
 app.use('/api/user',userRouter);
-// app.get('/',(req,res)=>{
-//     res.status(200).json({message:"hello there we re starting with our new project and we will finish this and will learn a lot from it and after this we will be a better developer"})
-// })
+app.get('/', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Backend is running successfully."
+    });
+});
 
 // Global error handler should be the last middleware
 app.use(errorHandler);
